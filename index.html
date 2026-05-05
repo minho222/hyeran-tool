@@ -1,0 +1,1980 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>혜란이 업무툴</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+  :root {
+    --sidebar-w: 230px;
+    --brand: #1e6b3c;
+    --brand-light: #2a8a50;
+    --brand-accent: #3dd68c;
+    --bg: #f3f5f3;
+    --surface: #ffffff;
+    --border: #e2e8e2;
+    --text: #1a2e1a;
+    --text-sub: #5a7060;
+    --text-muted: #96a896;
+    --handon: #dc2626;
+    --handon-bg: #fef2f2;
+    --handon-border: #fca5a5;
+    --hanwoo: #b45309;
+    --hanwoo-bg: #fefce8;
+    --hanwoo-border: #fde047;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+  /* ───── 사이드바 (PC) ───── */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-height: 100vh;
+    background: var(--brand);
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    display: flex; flex-direction: column;
+    box-shadow: 3px 0 20px rgba(0,0,0,0.12);
+    z-index: 200;
+    transition: transform 0.25s ease;
+  }
+
+  .sidebar-title {
+    padding: 22px 20px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    text-align: center;
+  }
+  .sidebar-character {
+    font-size: 48px;
+    line-height: 1;
+    margin-bottom: 8px;
+    display: block;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+    animation: bounce 2.5s ease-in-out infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  .sidebar-title-text {
+    font-size: 16px; font-weight: 900; color: #fff; letter-spacing: -0.3px; line-height: 1.3;
+  }
+  .sidebar-title-text span { color: var(--brand-accent); }
+  .sidebar-title-sub { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 4px; letter-spacing: 0.5px; }
+
+  .sidebar-menu { padding: 14px 12px; flex: 1; }
+  .menu-label { font-size: 9.5px; font-weight: 700; letter-spacing: 1.5px; color: rgba(255,255,255,0.28); padding: 10px 10px 5px; text-transform: uppercase; }
+
+  .menu-item {
+    display: flex; align-items: center; gap: 11px;
+    padding: 11px 12px; border-radius: 10px; margin-bottom: 2px;
+    cursor: pointer; transition: all 0.15s;
+    color: rgba(255,255,255,0.55); font-size: 13.5px; font-weight: 500;
+    position: relative; user-select: none;
+  }
+  .menu-item:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9); }
+  .menu-item.active { background: rgba(61,214,140,0.16); color: #fff; font-weight: 700; }
+  .menu-item.active::before {
+    content: ''; position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
+    width: 4px; height: 22px; background: var(--brand-accent); border-radius: 0 3px 3px 0;
+  }
+  .menu-icon { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
+  .menu-name { flex: 1; }
+  .menu-tag { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 8px; }
+  .menu-tag.new { background: var(--brand-accent); color: var(--brand); }
+  .menu-tag.wip { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.3); }
+
+  /* 서브메뉴 */
+  .submenu { overflow: hidden; max-height: 0; transition: max-height 0.3s ease; }
+  .submenu.open { max-height: 300px; }
+  .submenu-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 12px 8px 36px; border-radius: 8px; margin: 1px 8px;
+    cursor: pointer; transition: all 0.15s;
+    color: rgba(255,255,255,0.45); font-size: 12.5px; font-weight: 400;
+  }
+  .submenu-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.8); }
+  .submenu-item.active { color: var(--brand-accent); font-weight: 600; }
+  .submenu-item::before { content: '·'; font-size: 16px; color: rgba(255,255,255,0.25); }
+  .menu-arrow { font-size: 10px; transition: transform 0.3s; margin-left: auto; opacity: 0.5; }
+  .menu-item.open .menu-arrow { transform: rotate(90deg); }
+
+  .sidebar-footer { padding: 14px 22px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 10px; color: rgba(255,255,255,0.2); line-height: 1.7; }
+
+  /* 오버레이 (모바일 사이드바 열릴 때) */
+  .overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 150;
+  }
+  .overlay.show { display: block; }
+
+  /* ───── 메인 ───── */
+  .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* 상단바 */
+  .topbar {
+    height: 52px; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 24px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    gap: 12px;
+  }
+  /* 햄버거 버튼 (모바일에서만 표시) */
+  .hamburger {
+    display: none;
+    background: none; border: none; cursor: pointer;
+    font-size: 20px; color: var(--brand); padding: 4px; line-height: 1;
+    flex-shrink: 0;
+  }
+  .topbar-path { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+  .topbar-path .cur { color: var(--text); font-weight: 700; }
+  .topbar-right { margin-left: auto; font-size: 11px; color: var(--text-muted); font-family: 'IBM Plex Mono', monospace; white-space: nowrap; }
+
+  /* 페이지 */
+  .page { display: none; padding: 24px 28px; animation: fadeUp 0.2s ease; }
+  .page.active { display: block; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+  .page-header { margin-bottom: 22px; }
+  .page-title { font-size: 20px; font-weight: 900; color: var(--text); letter-spacing: -0.4px; }
+  .page-desc { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  /* 카드 */
+  .card { background: var(--surface); border-radius: 14px; padding: 20px 22px; border: 1px solid var(--border); margin-bottom: 16px; box-shadow: 0 1px 5px rgba(0,0,0,0.04); }
+
+  .input-label { font-size: 12px; font-weight: 700; color: var(--brand); margin-bottom: 9px; display: flex; align-items: center; gap: 7px; }
+  .dot { width: 6px; height: 6px; background: var(--brand-accent); border-radius: 50%; }
+
+  textarea {
+    width: 100%; height: 110px; border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; font-family: inherit; font-size: 13px; resize: vertical;
+    outline: none; background: var(--bg); line-height: 1.6; transition: border-color 0.2s; color: var(--text);
+  }
+  textarea:focus { border-color: var(--brand-accent); background: white; }
+  textarea::placeholder { color: var(--text-muted); }
+
+  .guide { background: #fffbea; border: 1px solid #fde68a; border-radius: 9px; padding: 10px 14px; font-size: 11.5px; color: #92400e; margin-top: 10px; line-height: 1.8; }
+  .guide strong { font-weight: 700; }
+
+  .btn-row { display: flex; gap: 9px; margin-top: 13px; flex-wrap: wrap; }
+  .btn-primary { background: var(--brand); color: white; border: none; border-radius: 9px; padding: 10px 26px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; transition: 0.18s; }
+  .btn-primary:hover { background: var(--brand-light); }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-ghost { background: transparent; color: var(--text-sub); border: 1.5px solid var(--border); border-radius: 9px; padding: 10px 18px; font-size: 12.5px; font-family: inherit; cursor: pointer; transition: 0.18s; }
+  .btn-ghost:hover { border-color: #aaa; }
+
+  /* 합계 그리드 */
+  .sum-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .sum-card { border-radius: 12px; padding: 14px 16px; border: 1.5px solid; }
+  .sum-card.oc { background: var(--handon-bg); border-color: var(--handon-border); }
+  .sum-card.yo { background: var(--hanwoo-bg); border-color: var(--hanwoo-border); }
+  .sum-card.to { background: #f0fdf4; border-color: #86efac; }
+  .sum-tag { font-size: 9.5px; font-weight: 800; letter-spacing: 1px; margin-bottom: 2px; }
+  .sum-card.oc .sum-tag { color: var(--handon); }
+  .sum-card.yo .sum-tag { color: var(--hanwoo); }
+  .sum-card.to .sum-tag { color: #166534; }
+  .sum-name { font-size: 12px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+  .sum-divider { border: none; border-top: 1px solid rgba(0,0,0,0.07); margin: 6px 0; }
+  .sum-row { display: flex; justify-content: space-between; align-items: flex-end; }
+  .sum-lbl { font-size: 11px; color: var(--text-sub); }
+  .sum-val { font-size: 26px; font-weight: 900; line-height: 1; font-family: 'IBM Plex Mono', monospace; }
+  .sum-card.oc .sum-val { color: var(--handon); }
+  .sum-card.yo .sum-val { color: var(--hanwoo); }
+  .sum-card.to .sum-val { color: #15803d; }
+  .sum-cnt { font-size: 11px; color: var(--text-muted); margin-top: 3px; text-align: right; }
+
+  /* 섹션 */
+  .sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .sec-left { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .sec-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; border: 1.5px solid; }
+  .sec-badge.hd { background: var(--handon-bg); color: var(--handon); border-color: var(--handon-border); }
+  .sec-badge.hw { background: var(--hanwoo-bg); color: var(--hanwoo); border-color: var(--hanwoo-border); }
+  .sec-badge.et { background: #f9fafb; color: #4b5563; border-color: #d1d5db; }
+  .sec-info { font-size: 12px; color: var(--text-muted); }
+  .sec-acts { display: flex; gap: 7px; }
+  .btn-xs { font-size: 11.5px; font-family: inherit; font-weight: 600; padding: 5px 12px; border-radius: 7px; cursor: pointer; transition: 0.15s; border: 1.5px solid; }
+  .btn-xs.out { background: white; color: var(--brand); border-color: var(--brand); }
+  .btn-xs.out:hover { background: #f0faf4; }
+  .btn-xs.sol { background: var(--brand); color: white; border-color: var(--brand); }
+  .btn-xs.sol:hover { background: var(--brand-light); }
+
+  /* 테이블 래퍼 - 모바일 스크롤 */
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* 엑셀 테이블 */
+  .xl { width: 100%; border-collapse: collapse; font-size: 12.5px; border: 1.5px solid #c8d4c8; min-width: 480px; }
+  .xl.oc thead tr { background: var(--handon); }
+  .xl.hw thead tr { background: var(--hanwoo); }
+  .xl.et thead tr { background: #4b5563; }
+  .xl thead th { color: white; font-weight: 700; font-size: 11.5px; padding: 8px 10px; text-align: center; border: 1px solid rgba(255,255,255,0.2); }
+  .xl thead th.l { text-align: left; }
+  .xl.oc tbody tr:nth-child(odd) { background: #fff8f8; }
+  .xl.oc tbody tr:nth-child(even) { background: #fff; }
+  .xl.hw tbody tr:nth-child(odd) { background: var(--hanwoo-bg); }
+  .xl.hw tbody tr:nth-child(even) { background: #fff; }
+  .xl.et tbody tr:nth-child(odd) { background: #f9fafb; }
+  .xl.et tbody tr:nth-child(even) { background: #fff; }
+  .xl tbody tr:hover { filter: brightness(0.96); }
+  .xl tbody td { padding: 7px 10px; border: 1px solid #eaefea; text-align: center; vertical-align: middle; white-space: nowrap; }
+  .xl tbody td.nm { text-align: left; font-weight: 500; white-space: normal; }
+  .xl tbody td.qt { font-weight: 800; font-size: 13px; font-family: 'IBM Plex Mono', monospace; }
+  .xl tbody td.rn { color: var(--text-muted); font-size: 11px; width: 28px; }
+  .xl.oc tbody td.qt { color: var(--handon); }
+  .xl.hw tbody td.qt { color: var(--hanwoo); }
+  .xl.oc tfoot tr { background: #fca5a5; }
+  .xl.hw tfoot tr { background: #fde68a; }
+  .xl.et tfoot tr { background: #d1d5db; }
+  .xl tfoot td { padding: 8px 10px; border: 1.5px solid #c8d4c8; font-weight: 800; font-size: 13px; text-align: center; font-family: 'IBM Plex Mono', monospace; }
+  .xl tfoot td.lbl { text-align: right; font-family: 'Noto Sans KR', sans-serif; color: #374151; font-size: 12px; font-weight: 700; }
+  .xl.oc tfoot td.tv { color: #991b1b; font-size: 16px; }
+  .xl.hw tfoot td.tv { color: #78350f; font-size: 16px; }
+  .xl.et tfoot td.tv { color: #111; font-size: 16px; }
+
+  /* PC/모바일 가이드 분기 */
+  .pc-guide { display: block; }
+  .mobile-guide { display: none; }
+  @media (max-width: 768px) {
+    .pc-guide { display: none; }
+    .mobile-guide { display: block; }
+  }
+
+  /* 윤성 매입 업로드 */
+  .ys-tabs { display:flex; gap:4px; margin-bottom:18px; background:var(--surface); border-radius:12px; padding:5px; border:1px solid var(--border); }
+  .ys-tab { flex:1; text-align:center; padding:9px 12px; border-radius:9px; font-size:13px; font-weight:600; color:var(--text-muted); cursor:pointer; transition:0.15s; }
+  .ys-tab.active { background:var(--brand); color:white; }
+  .ys-tab:hover:not(.active) { background:var(--bg); color:var(--text); }
+  .ys-upload-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px; }
+  .ys-upload-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:18px; }
+  .ys-drop { border:2px dashed var(--border); border-radius:10px; padding:24px 12px; text-align:center; cursor:pointer; transition:0.2s; background:var(--bg); min-height:110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; }
+  .ys-drop:hover { border-color:var(--brand-accent); background:#f0faf4; }
+  .ys-drop.loaded { border-color:var(--brand-accent); background:#f0faf4; border-style:solid; }
+  .ys-drop-icon { font-size:24px; }
+  .ys-drop-text { font-size:12px; font-weight:600; color:var(--text-sub); }
+  .ys-drop.loaded .ys-drop-text { color:var(--brand); }
+  .ys-drop-sub { font-size:10.5px; color:var(--text-muted); }
+
+  /* 개발중 */
+  .wip-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 360px; text-align: center; }
+  .wip-icon { font-size: 48px; margin-bottom: 14px; opacity: 0.35; }
+  .wip-title { font-size: 16px; font-weight: 800; color: var(--text-muted); margin-bottom: 6px; }
+  .wip-sub { font-size: 13px; color: var(--text-muted); opacity: 0.7; }
+
+  /* 토스트 */
+  .toast { position: fixed; bottom: 22px; right: 20px; background: #1a2e1a; color: white; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 500; opacity: 0; transform: translateY(12px); transition: all 0.25s; z-index: 9999; box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ═══════════════════════════
+     모바일 반응형 (768px 이하)
+  ═══════════════════════════ */
+  @media (max-width: 768px) {
+
+    /* 사이드바: 평소엔 숨김, 열리면 슬라이드인 */
+    .sidebar {
+      transform: translateX(-100%);
+    }
+    .sidebar.open {
+      transform: translateX(0);
+    }
+
+    /* 햄버거 버튼 표시 */
+    .hamburger { display: block; }
+
+    /* 메인 마진 제거 */
+    .main { margin-left: 0; }
+
+    /* 상단바 */
+    .topbar { padding: 0 16px; }
+    .topbar-right { display: none; } /* 날짜 숨김 */
+
+    /* 페이지 패딩 줄이기 */
+    .page { padding: 16px; }
+    .page-title { font-size: 18px; }
+
+    /* 카드 패딩 */
+    .card { padding: 16px; border-radius: 12px; }
+
+    /* 합계 그리드: 모바일에서 세로 배치 */
+    .sum-grid { grid-template-columns: 1fr; gap: 10px; }
+    .sum-val { font-size: 30px; }
+
+    /* 버튼 풀너비 */
+    .btn-primary { width: 100%; justify-content: center; padding: 13px; font-size: 14px; }
+    .btn-ghost { flex: 1; text-align: center; }
+    .btn-row { flex-direction: column; }
+
+    /* 섹션 버튼 */
+    .sec-acts { width: 100%; }
+    .btn-xs { flex: 1; text-align: center; padding: 8px; }
+
+    /* 토스트 */
+    .toast { left: 16px; right: 16px; text-align: center; }
+  }
+
+  /* 태블릿 (769px ~ 1024px) */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    :root { --sidebar-w: 200px; }
+    .page { padding: 20px 22px; }
+    .sum-grid { grid-template-columns: 1fr 1fr; }
+    .sum-card.to { grid-column: span 2; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 오버레이 (모바일) -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- 사이드바 -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">
+    <span class="sidebar-character">🐶</span>
+    <div class="sidebar-title-text"><span>혜란이</span> 업무툴</div>
+    <div class="sidebar-title-sub">✨ 나만의 업무 자동화 도구</div>
+  </div>
+
+  <div class="sidebar-menu">
+    <div class="menu-label">메뉴</div>
+
+    <div class="menu-item active" id="menuOrder" onclick="toggleOrderMenu(this)">
+      <span class="menu-icon">📦</span>
+      <span class="menu-name">오아시스</span>
+      <span class="menu-arrow">▶</span>
+    </div>
+    <div class="submenu open" id="submenuOrder">
+      <div class="submenu-item active" id="subOrderPaste" onclick="goOrderTab('paste', this)">텍스트 붙여넣기</div>
+      <div class="submenu-item" id="subOrderImage" onclick="goOrderTab('image', this)">이미지로 읽기</div>
+    </div>
+
+    <div class="menu-item" id="menuYunsong" onclick="toggleYunsongMenu(this)">
+      <span class="menu-icon">📤</span>
+      <span class="menu-name">윤성</span>
+      <span class="menu-arrow">▶</span>
+    </div>
+    <div class="submenu" id="submenuYunsong">
+      <div class="submenu-item" id="subUpload" onclick="goYunsongTab('upload', this)">파일 업로드 &amp; 합치기</div>
+      <div class="submenu-item" id="subSummary" onclick="goYunsongTab('summary', this)">품목별 합계</div>
+      <div class="submenu-item" id="subSlaughter" onclick="goYunsongTab('slaughter', this)">도축장코드 관리</div>
+    </div>
+
+    <div class="menu-item" id="menuMeatbox" onclick="toggleMeatboxMenu(this)">
+      <span class="menu-icon">🥩</span>
+      <span class="menu-name">미트박스</span>
+      <span class="menu-arrow">▶</span>
+    </div>
+    <div class="submenu" id="submenuMeatbox">
+      <div class="submenu-item" id="subMeatboxExport" onclick="goMeatboxTab('export', this)">출고자료</div>
+    </div>
+
+    <div class="menu-item" onclick="goPage('wip', this)">
+      <span class="menu-icon">🔧</span>
+      <span class="menu-name">개발중</span>
+      <span class="menu-tag wip">준비중</span>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    혜란이 업무툴 v1.0<br>© 2026
+  </div>
+</nav>
+
+<!-- 메인 -->
+<div class="main">
+
+  <!-- 상단바 -->
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <div class="topbar-path">
+      혜란이 업무툴 <span style="margin:0 4px;color:#ccc">›</span>
+      <span class="cur" id="breadcrumb">오아시스</span>
+    </div>
+    <div class="topbar-right" id="topbarDate"></div>
+  </div>
+
+  <!-- 오아시스 발주관리 -->
+  <div class="page active" id="page-order">
+    <div class="page-header">
+      <div class="page-title">📦 오아시스 발주관리</div>
+      <div class="page-desc">팜스토리 발주 목록 → 공장별 자동 분류</div>
+    </div>
+
+    <!-- 텍스트 붙여넣기 탭 -->
+    <div id="orderTab-paste">
+      <div class="card">
+        <div class="input-label"><div class="dot"></div>복사한 내용 붙여넣기</div>
+        <textarea id="inputArea" placeholder="여기를 길게 눌러 붙여넣기 하세요..."></textarea>
+        <div class="guide pc-guide">
+          🖥️ <strong>PC:</strong> 팜스토리 발주 목록에서 <strong>Ctrl+A → Ctrl+C</strong> → 위 칸에 <strong>Ctrl+V</strong> → 정리하기
+        </div>
+        <div class="guide mobile-guide">
+          📱 <strong>모바일 사용법</strong><br>
+          ① 팜스토리 접속 → 매장 발주 목록 열기<br>
+          ② 상품코드가 있는 <strong>핑크색 행을 길게 터치</strong> → 텍스트 선택<br>
+          ③ 드래그로 필요한 행까지 선택 범위 넓히기<br>
+          ④ <strong>복사</strong> → 이 앱으로 돌아와서 위 칸 <strong>길게 눌러 붙여넣기</strong>
+        </div>
+        <div class="btn-row">
+          <button class="btn-primary" onclick="parseData()">▶ 정리하기</button>
+          <button class="btn-ghost" onclick="clearAll()">초기화</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 이미지로 읽기 탭 -->
+    <div id="orderTab-image" style="display:none;">
+      <div class="card">
+        <div class="input-label"><div class="dot"></div>이미지 → 텍스트 변환 방법</div>
+        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:18px;">
+
+          <div style="display:flex; gap:14px; align-items:flex-start; background:#f0fdf4; border-radius:12px; padding:14px 16px; border:1px solid #86efac;">
+            <div style="background:var(--brand); color:white; font-size:13px; font-weight:800; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">1</div>
+            <div>
+              <div style="font-size:13px; font-weight:700; color:var(--brand); margin-bottom:4px;">Claude.ai 열기</div>
+              <div style="font-size:12px; color:var(--text-sub); line-height:1.7;">아래 버튼을 눌러 Claude.ai를 새 탭으로 열어주세요</div>
+              <a href="https://claude.ai" target="_blank" style="display:inline-flex; align-items:center; gap:6px; margin-top:8px; background:var(--brand); color:white; padding:7px 16px; border-radius:8px; font-size:12px; font-weight:700; text-decoration:none;">🤖 Claude.ai 열기 →</a>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:14px; align-items:flex-start; background:#fefce8; border-radius:12px; padding:14px 16px; border:1px solid #fde047;">
+            <div style="background:#b45309; color:white; font-size:13px; font-weight:800; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">2</div>
+            <div>
+              <div style="font-size:13px; font-weight:700; color:#b45309; margin-bottom:4px;">이미지 + 아래 문구 함께 전송</div>
+              <div style="font-size:12px; color:var(--text-sub); line-height:1.7;">Claude.ai에 <strong>스크린샷 이미지</strong>를 붙여넣고 아래 문구도 함께 보내주세요</div>
+              <div style="margin-top:8px; background:white; border:1.5px solid #fde047; border-radius:8px; padding:10px 14px; font-size:12px; color:var(--text); line-height:1.7; position:relative; padding-right:60px;">
+                이 팜스토리 발주 목록 이미지에서 상품코드(13자리 숫자), 상품명, 수량만 탭으로 구분해서 출력해줘. 다른 설명 없이 데이터만.
+                <button onclick="copyPrompt()" style="position:absolute; top:8px; right:8px; background:var(--brand); color:white; border:none; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-family:inherit; font-weight:700;">복사</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:14px; align-items:flex-start; background:#fef2f2; border-radius:12px; padding:14px 16px; border:1px solid #fca5a5;">
+            <div style="background:#dc2626; color:white; font-size:13px; font-weight:800; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">3</div>
+            <div>
+              <div style="font-size:13px; font-weight:700; color:#dc2626; margin-bottom:4px;">결과 복사 → 아래에 붙여넣기</div>
+              <div style="font-size:12px; color:var(--text-sub); line-height:1.7;">Claude 답변을 <strong>전체 복사</strong>해서 아래 칸에 붙여넣고 <strong>정리하기</strong> 클릭!</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-label" style="margin-bottom:8px;"><div class="dot"></div>Claude 결과 붙여넣기</div>
+        <textarea id="imgTextArea" placeholder="Claude.ai에서 추출한 텍스트를 여기에 붙여넣으세요..." style="height:110px;"></textarea>
+        <div class="btn-row" style="margin-top:11px;">
+          <button class="btn-primary" onclick="parseImageText()">▶ 정리하기</button>
+          <button class="btn-ghost" onclick="document.getElementById('imgTextArea').value=''">초기화</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 합계 -->
+    <div class="sum-grid" id="sumGrid" style="display:none;">
+      <div class="sum-card oc">
+        <div class="sum-tag">🐷 한돈</div>
+        <div class="sum-name">오창 공장 발주</div>
+        <hr class="sum-divider">
+        <div class="sum-row">
+          <div class="sum-lbl">총 수량</div>
+          <div class="sum-val" id="sumOc">-</div>
+        </div>
+        <div class="sum-cnt" id="cntOc"></div>
+      </div>
+      <div class="sum-card yo">
+        <div class="sum-tag">🐄 한우</div>
+        <div class="sum-name">용인 공장 발주</div>
+        <hr class="sum-divider">
+        <div class="sum-row">
+          <div class="sum-lbl">총 수량</div>
+          <div class="sum-val" id="sumYo">-</div>
+        </div>
+        <div class="sum-cnt" id="cntYo"></div>
+      </div>
+      <div class="sum-card to">
+        <div class="sum-tag">📦 전체</div>
+        <div class="sum-name">전체 합계</div>
+        <hr class="sum-divider">
+        <div class="sum-row">
+          <div class="sum-lbl">총 수량</div>
+          <div class="sum-val" id="sumTo">-</div>
+        </div>
+        <div class="sum-cnt" id="cntTo"></div>
+      </div>
+    </div>
+
+    <!-- 한돈 -->
+    <div class="card" id="secHd" style="display:none;">
+      <div class="sec-head">
+        <div class="sec-left">
+          <span class="sec-badge hd">🐷 한돈 · 오창공장</span>
+          <span class="sec-info" id="infoHd"></span>
+        </div>
+        <div class="sec-acts">
+          <button class="btn-xs out" onclick="copySection('handon')">📋 복사</button>
+          <button class="btn-xs sol" onclick="downloadCSV('handon')">⬇ CSV</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><div id="tblHd"></div></div>
+    </div>
+
+    <!-- 한우 -->
+    <div class="card" id="secHw" style="display:none;">
+      <div class="sec-head">
+        <div class="sec-left">
+          <span class="sec-badge hw">🐄 한우 · 용인공장</span>
+          <span class="sec-info" id="infoHw"></span>
+        </div>
+        <div class="sec-acts">
+          <button class="btn-xs out" onclick="copySection('hanwoo')">📋 복사</button>
+          <button class="btn-xs sol" onclick="downloadCSV('hanwoo')">⬇ CSV</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><div id="tblHw"></div></div>
+    </div>
+
+    <!-- 기타 -->
+    <div class="card" id="secEt" style="display:none;">
+      <div class="sec-head">
+        <div class="sec-left">
+          <span class="sec-badge et">📦 기타</span>
+          <span class="sec-info" id="infoEt"></span>
+        </div>
+        <div class="sec-acts">
+          <button class="btn-xs out" onclick="copySection('etc')">📋 복사</button>
+          <button class="btn-xs sol" onclick="downloadCSV('etc')">⬇ CSV</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><div id="tblEt"></div></div>
+    </div>
+  </div>
+
+  <!-- 윤성 매입 업로드 -->
+  <div class="page" id="page-yunsong">
+    <div class="page-header">
+      <div class="page-title">📤 윤성 매입 업로드</div>
+      <div class="page-desc">2개 파일 업로드 + 도축장코드 관리 → 완성 엑셀 다운로드</div>
+    </div>
+
+
+
+    <!-- ── 탭1: 업로드 ── -->
+    <div id="ysTab-upload">
+
+      <div class="ys-upload-grid2">
+        <!-- 1번 로우데이터 -->
+        <div class="card" style="margin-bottom:0;">
+          <div class="input-label"><div class="dot"></div>① 로우데이터</div>
+          <div class="ys-drop" id="drop1" onclick="document.getElementById('file1').click()" ondragover="event.preventDefault()" ondrop="handleDrop(event,1)">
+            <div class="ys-drop-icon">📄</div>
+            <div class="ys-drop-text" id="dropText1">클릭 또는 드래그</div>
+            <div class="ys-drop-sub">.xlsx / .xls</div>
+          </div>
+          <input type="file" id="file1" accept=".xlsx,.xls" style="display:none" onchange="loadFile(1,this)">
+        </div>
+        <!-- 2번 매입단가 -->
+        <div class="card" style="margin-bottom:0;">
+          <div class="input-label"><div class="dot"></div>② 매입단가 (바코드→단가)</div>
+          <div class="ys-drop" id="drop2" onclick="document.getElementById('file2').click()" ondragover="event.preventDefault()" ondrop="handleDrop(event,2)">
+            <div class="ys-drop-icon">💰</div>
+            <div class="ys-drop-text" id="dropText2">클릭 또는 드래그</div>
+            <div class="ys-drop-sub">.xlsx / .xls</div>
+          </div>
+          <input type="file" id="file2" accept=".xlsx,.xls" style="display:none" onchange="loadFile(2,this)">
+        </div>
+      </div>
+
+      <!-- 안내 -->
+      <div class="card" style="margin-bottom:18px; background:#f0faf4; border-color:#a7d7b8;">
+        <div style="font-size:12px; color:var(--brand); line-height:1.9;">
+          ✅ <strong>자동 매핑 규칙</strong><br>
+          · 로우데이터 <strong>품목코드</strong> → 최종 <strong>상품코드</strong><br>
+          · 바코드 매칭으로 ② 매입단가에서 → <strong>품목코드 · 품목명칭 · 금액2(단가)</strong> 자동 가져오기<br>
+          · <strong>도축장코드</strong> → 🏭 도축장코드 관리 탭에서 설정
+        </div>
+      </div>
+
+      <!-- 실행 버튼 -->
+      <div class="card" style="margin-bottom:18px;">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <button class="btn-primary" onclick="mergePreview()" id="btnMerge" disabled style="opacity:0.4;">🔍 합치기 &amp; 미리보기</button>
+          <button class="btn-primary" onclick="downloadExcel()" id="btnDownload" disabled style="opacity:0.4; background:var(--brand-light);">⬇ 엑셀 다운로드</button>
+          <button class="btn-ghost" onclick="resetYunsong()">초기화</button>
+          <span style="font-size:12px; color:var(--text-muted);" id="ysStatus">파일 2개를 모두 업로드해주세요</span>
+        </div>
+      </div>
+
+      <!-- 합계 요약은 서브메뉴 '품목별 합계' 탭에서 표시 -->
+      <div id="ysSummary" style="display:none;"><div id="ysSummaryTable"></div></div>
+
+      <!-- 미리보기 -->
+      <div class="card" id="ysPreview" style="display:none;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+          <div class="input-label" style="margin-bottom:0;"><div class="dot"></div>미리보기 <span id="previewCount" style="font-weight:500; color:var(--text-muted);"></span></div>
+          <div style="display:flex; gap:7px; align-items:center;">
+            <span style="font-size:11px; color:var(--text-muted);">전체 <strong id="totalCount">-</strong>행</span>
+            <button class="btn-xs sol" onclick="downloadExcel()">⬇ 엑셀 다운로드</button>
+          </div>
+        </div>
+        <!-- 시트 탭 -->
+        <div id="sheetTabs" style="margin-bottom:0;"></div>
+        <!-- 페이지 테이블 (가로 스크롤 영역) -->
+        <div id="pagedTable" style="overflow:hidden;"></div>
+        <!-- 페이지네이션 고정 바 (테이블과 완전 분리) -->
+        <div id="paginationBar" style="position:sticky;bottom:0;background:white;z-index:10;"></div>
+      </div>
+    </div>
+
+    <!-- ── 탭2: 도축장코드 관리 ── -->
+    <div id="ysTab-slaughter" style="display:none;">
+
+      <!-- 엑셀 불러오기 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="input-label"><div class="dot"></div>엑셀로 불러오기</div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <div class="ys-drop" id="dropSlaughter" onclick="document.getElementById('fileSlaughter').click()" ondragover="event.preventDefault()" ondrop="handleSlaughterDrop(event)" style="flex:1; min-width:200px; min-height:70px; padding:12px;">
+            <div class="ys-drop-icon" style="font-size:18px;">🏭</div>
+            <div class="ys-drop-text" id="dropTextSlaughter">도축장코드 엑셀 클릭 또는 드래그</div>
+            <div class="ys-drop-sub">A열: 도축장명 / B열: 코드</div>
+          </div>
+          <input type="file" id="fileSlaughter" accept=".xlsx,.xls" style="display:none" onchange="loadSlaughterFile(this)">
+        </div>
+      </div>
+
+      <!-- 수기 추가 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="input-label"><div class="dot"></div>수기 추가</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input id="newSlaughterName" type="text" placeholder="도축장명" style="flex:1; min-width:140px; padding:9px 12px; border:1.5px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px; outline:none;">
+          <input id="newSlaughterCode" type="text" placeholder="코드 (예: 0509)" style="width:130px; padding:9px 12px; border:1.5px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px; outline:none;">
+          <button class="btn-primary" onclick="addSlaughterRow()" style="padding:9px 20px;">+ 추가</button>
+        </div>
+      </div>
+
+      <!-- 도축장 목록 테이블 -->
+      <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+          <div class="input-label" style="margin-bottom:0;"><div class="dot"></div>도축장코드 목록 <span id="slaughterCount" style="font-weight:500; color:var(--text-muted);"></span></div>
+          <div style="display:flex; gap:7px;">
+            <button class="btn-xs out" onclick="downloadSlaughterExcel()">⬇ 목록 저장</button>
+            <button class="btn-xs out" style="color:#dc2626; border-color:#dc2626;" onclick="clearAllSlaughter()">전체 삭제</button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table class="xl et" id="slaughterTable">
+            <thead><tr><th style="width:40px">No.</th><th class="l">도축장명</th><th style="width:100px">코드</th><th style="width:60px">삭제</th></tr></thead>
+            <tbody id="slaughterTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- 합계 요약 전용 탭 -->
+    <div id="ysSummaryTab" style="display:none;">
+      <div class="page-header">
+        <div class="page-title" style="font-size:18px;">📊 품목별 합계</div>
+        <div class="page-desc">성남 + 의왕 통합 품목별 수량·중량·금액 합계</div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="input-label" style="margin-bottom:0;"><div class="dot"></div>품목별 합계 요약 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(성남 + 의왕 통합)</span></div>
+          <button class="btn-xs solid" onclick="downloadSummaryExcel()">⬇ 합계 엑셀</button>
+        </div>
+        <div id="ysSummaryEmpty" style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px;">
+          🔍 먼저 <strong>파일 업로드 &amp; 합치기</strong> 탭에서 합치기를 실행해주세요
+        </div>
+        <div style="overflow-x:auto;"><div id="ysSummaryTable2"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 미트박스 -->
+  <div class="page" id="page-meatbox">
+    <div class="page-header">
+      <div class="page-title">🥩 미트박스</div>
+      <div class="page-desc">미트박스 데이터 관리</div>
+    </div>
+
+    <!-- 출고자료 탭 -->
+    <div id="meatboxTab-export">
+
+      <!-- 파일 업로드 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="input-label"><div class="dot"></div>출고자료 엑셀 업로드</div>
+        <div class="ys-drop" id="dropMeatbox"
+          onclick="document.getElementById('fileMeatbox').click()"
+          ondragover="event.preventDefault()"
+          ondrop="handleMeatboxDrop(event)"
+          style="min-height:110px;">
+          <div class="ys-drop-icon">🥩</div>
+          <div class="ys-drop-text" id="dropTextMeatbox">클릭 또는 드래그</div>
+          <div class="ys-drop-sub">.xlsx / .xls</div>
+        </div>
+        <input type="file" id="fileMeatbox" accept=".xlsx,.xls" style="display:none" onchange="loadMeatboxFile(this)">
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn-primary" onclick="processMeatbox()" id="btnMeatbox" disabled style="opacity:0.4;">▶ 출고자료 생성</button>
+          <button class="btn-ghost" onclick="resetMeatbox()">초기화</button>
+        </div>
+      </div>
+
+      <!-- 미리보기 -->
+      <div class="card" id="meatboxPreview" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div class="input-label" style="margin-bottom:0;"><div class="dot"></div>출고자료 미리보기 <span id="meatboxInfo" style="font-size:11px;color:var(--text-muted);font-weight:400;"></span></div>
+          <div style="display:flex;gap:7px;">
+            <button class="btn-xs out" onclick="downloadMeatboxExcel()">⬇ 엑셀</button>
+            <button class="btn-xs sol" onclick="downloadMeatboxImage()">🖼 이미지 저장</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;"><div id="meatboxTable" id="meatboxCapture"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 개발중 -->
+  <div class="page" id="page-wip">
+    <div class="page-header">
+      <div class="page-title">🔧 개발중</div>
+      <div class="page-desc">새로운 기능을 준비하고 있어요</div>
+    </div>
+    <div class="wip-wrap">
+      <div class="wip-icon">🚧</div>
+      <div class="wip-title">열심히 만들고 있어요!</div>
+      <div class="wip-sub">곧 새로운 기능이 추가될 예정입니다 😊</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// 날짜
+function tick(){
+  const n=new Date(), f=x=>String(x).padStart(2,'0');
+  document.getElementById('topbarDate').textContent=
+    `${n.getFullYear()}.${f(n.getMonth()+1)}.${f(n.getDate())} ${f(n.getHours())}:${f(n.getMinutes())}`;
+}
+tick(); setInterval(tick,10000);
+
+// 사이드바 토글 (모바일)
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// 페이지 전환
+const labels = { order:'오아시스', yunsong:'윤성', meatbox:'미트박스', wip:'개발중' };
+
+function toggleOrderMenu(el){
+  const submenu = document.getElementById('submenuOrder');
+  const isOpen = submenu.classList.contains('open');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active','open'));
+  document.getElementById('page-order').classList.add('active');
+  el.classList.add('active');
+  document.getElementById('breadcrumb').textContent = '오아시스 발주관리';
+  closeSidebar();
+  if(!isOpen){
+    submenu.classList.add('open'); el.classList.add('open');
+    goOrderTab('paste', document.getElementById('subOrderPaste'));
+  } else {
+    submenu.classList.remove('open');
+  }
+}
+
+function goOrderTab(tab, el){
+  document.querySelectorAll('#submenuOrder .submenu-item').forEach(s=>s.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('orderTab-paste').style.display = tab==='paste' ? 'block' : 'none';
+  document.getElementById('orderTab-image').style.display = tab==='image' ? 'block' : 'none';
+  if(!document.getElementById('page-order').classList.contains('active')){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-order').classList.add('active');
+  }
+  closeSidebar();
+}
+
+function toggleMeatboxMenu(el){
+  const submenu = document.getElementById('submenuMeatbox');
+  const isOpen = submenu.classList.contains('open');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active','open'));
+  document.getElementById('page-meatbox').classList.add('active');
+  el.classList.add('active');
+  document.getElementById('breadcrumb').textContent = '미트박스';
+  closeSidebar();
+  if(!isOpen){
+    submenu.classList.add('open'); el.classList.add('open');
+    goMeatboxTab('export', document.getElementById('subMeatboxExport'));
+  } else {
+    submenu.classList.remove('open');
+  }
+}
+
+function goMeatboxTab(tab, el){
+  document.querySelectorAll('#submenuMeatbox .submenu-item').forEach(s=>s.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('meatboxTab-export').style.display = tab==='export' ? 'block' : 'none';
+  if(!document.getElementById('page-meatbox').classList.contains('active')){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-meatbox').classList.add('active');
+  }
+  closeSidebar();
+}
+
+function toggleYunsongMenu(el){
+  const submenu = document.getElementById('submenuYunsong');
+  const isOpen = submenu.classList.contains('open');
+
+  // 페이지 이동
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active'));
+  document.getElementById('page-yunsong').classList.add('active');
+  el.classList.add('active');
+  document.getElementById('breadcrumb').textContent = '윤성 매입 업로드';
+  closeSidebar();
+
+  // 서브메뉴 토글
+  if(!isOpen){
+    submenu.classList.add('open');
+    el.classList.add('open');
+    // 기본으로 첫번째 탭 활성화
+    goYunsongTab('upload', document.getElementById('subUpload'));
+  } else {
+    submenu.classList.remove('open');
+    el.classList.remove('open');
+  }
+}
+
+function goYunsongTab(tab, el){
+  // 서브메뉴 활성화
+  document.querySelectorAll('.submenu-item').forEach(s=>s.classList.remove('active'));
+  if(el) el.classList.add('active');
+
+  // 탭 전환
+  document.getElementById('ysTab-upload').style.display    = 'none';
+  document.getElementById('ysTab-slaughter').style.display = 'none';
+  document.getElementById('ysSummaryTab').style.display    = 'none';
+
+  if(tab==='upload')    document.getElementById('ysTab-upload').style.display    = 'block';
+  if(tab==='slaughter') document.getElementById('ysTab-slaughter').style.display = 'block';
+  if(tab==='summary')   document.getElementById('ysSummaryTab').style.display    = 'block';
+
+  // 페이지가 활성화 안되어있으면 활성화
+  if(!document.getElementById('page-yunsong').classList.contains('active')){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-yunsong').classList.add('active');
+  }
+  closeSidebar();
+}
+function goPage(id, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('breadcrumb').textContent = labels[id];
+  closeSidebar(); // 모바일에서 메뉴 선택 후 닫기
+}
+
+// 데이터
+let data = {handon:[],hanwoo:[],etc:[]};
+
+function classify(name){
+  if(name.includes('한돈')||name.includes('돈육')||name.includes('돼지')||
+     name.includes('돈가')||name.includes('돈까')||name.includes('삼겹살')||
+     name.includes('목살')||name.includes('앞다리')||name.includes('뒷다리')) return 'handon';
+  if(name.includes('한우')||name.includes('소고기')||name.includes('우육')||
+     name.includes('채끝')||name.includes('우삼겹')||name.includes('설도')) return 'hanwoo';
+  return 'etc';
+}
+
+function parseData(){
+  const raw=document.getElementById('inputArea').value.trim();
+  if(!raw){showToast('붙여넣기 내용이 없습니다!');return;}
+  data={handon:[],hanwoo:[],etc:[]};
+  const seen=new Set();
+
+  // ── 전처리: 줄바꿈 정규화 ──
+  const normalized = raw.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const lines = normalized.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+
+  for(const line of lines){
+    let row=null;
+
+    // ① 탭 구분 (PC Ctrl+A 복사 / Claude.ai 추출)
+    const parts=line.split(/\t+/);
+    if(parts.length>=2&&/^\d{8,15}$/.test(parts[0].trim())){
+      const code=parts[0].trim(), name=(parts[1]||'').trim();
+      let unit='EA', qty='';
+
+      if(parts.length===3){
+        // 코드\t상품명\t수량 (Claude.ai 형식 - 3칸)
+        const last=parts[2].trim();
+        if(/^\d+$/.test(last)){ qty=last; }          // 마지막이 숫자 → 수량
+        else { unit=last; }                            // 마지막이 문자 → 단위
+      } else if(parts.length>=4){
+        // 코드\t상품명\tEA\t수량 (Ctrl+A 형식 - 4칸 이상)
+        unit=parts[2].trim()||'EA';
+        for(let p=parts.length-1;p>=3;p--){
+          if(/^\d+$/.test(parts[p].trim())){qty=parts[p].trim();break;}
+        }
+      }
+      if(name) row={상품코드:code,상품명:name,입수단위:unit,총수량:qty};
+    }
+
+    // ② 공백 구분 - 상품코드+상품명+단위+수량 한 줄 (PC/모바일 공통)
+    if(!row){
+      const m=line.match(/^(\d{8,15})\s+(.+?)\s+(EA|KG|G|BOX|개|ea|kg)\s+\d*\s*(\d+)\s*$/i);
+      if(m) row={상품코드:m[1],상품명:m[2].trim(),입수단위:m[3].toUpperCase(),총수량:m[4]};
+    }
+
+    // ③ 모바일: 상품코드만 있는 줄 + 다음 줄에 상품명 (줄바꿈으로 분리된 경우)
+    // → 아래 후처리에서 처리
+
+    if(row&&!seen.has(row.상품코드)){seen.add(row.상품코드);data[classify(row.상품명)].push(row);}
+  }
+
+  // ③ 모바일 후처리: 상품코드만 단독 줄로 나온 경우 다음 줄과 합치기
+  if(!data.handon.length&&!data.hanwoo.length&&!data.etc.length){
+    // 전체를 하나의 텍스트로 보고 상품코드 패턴으로 스캔
+    const fullText = normalized.replace(/\n+/g,' ');
+    const matches = [...fullText.matchAll(/(\d{8,15})\s+([^\d]+?)\s+(EA|KG|G|BOX|개|ea|kg)\s+(\d+)/gi)];
+    matches.forEach(m=>{
+      const code=m[1],name=m[2].trim(),unit=m[3].toUpperCase(),qty=m[4];
+      if(!seen.has(code)&&name){
+        seen.add(code);
+        data[classify(name)].push({상품코드:code,상품명:name,입수단위:unit,총수량:qty});
+      }
+    });
+  }
+
+  if(!data.handon.length&&!data.hanwoo.length&&!data.etc.length){
+    showToast('⚠️ 인식된 데이터가 없습니다. 핑크색 행을 선택해서 복사해보세요.');
+    return;
+  }
+  renderAll();
+}
+
+function sum(rows){return rows.reduce((s,r)=>s+(parseInt(r.총수량)||0),0);}
+
+function buildTable(rows,cat){
+  const c={handon:'oc',hanwoo:'hw',etc:'et'}[cat];
+  const total=sum(rows);
+  let h=`<table class="xl ${c}"><thead><tr>
+    <th style="width:26px">No.</th><th style="width:120px">상품코드</th>
+    <th class="l">상품명</th><th style="width:52px">단위</th><th style="width:60px">수량</th>
+  </tr></thead><tbody>`;
+  rows.forEach((r,i)=>{h+=`<tr>
+    <td class="rn">${i+1}</td>
+    <td style="font-size:11px;font-family:'IBM Plex Mono',monospace">${r.상품코드}</td>
+    <td class="nm">${r.상품명}</td><td>${r.입수단위}</td><td class="qt">${r.총수량}</td>
+  </tr>`;});
+  h+=`</tbody><tfoot><tr><td colspan="3" class="lbl">합 계</td><td>EA</td><td class="tv">${total}</td></tr></tfoot></table>`;
+  return h;
+}
+
+function renderAll(){
+  const hd=data.handon,hw=data.hanwoo,et=data.etc,all=[...hd,...hw,...et];
+
+  // 합계 표시
+  const sg=document.getElementById('sumGrid');
+  sg.style.display='grid';
+  document.getElementById('sumOc').textContent=sum(hd);
+  document.getElementById('cntOc').textContent=`${hd.length}개 품목`;
+  document.getElementById('sumYo').textContent=sum(hw);
+  document.getElementById('cntYo').textContent=`${hw.length}개 품목`;
+  document.getElementById('sumTo').textContent=sum(all);
+  document.getElementById('cntTo').textContent=`총 ${all.length}개 품목`;
+
+  const show=(sid,rows,cat,iid,tid)=>{
+    if(rows.length>0){
+      document.getElementById(sid).style.display='block';
+      document.getElementById(iid).textContent=`${rows.length}개 품목 · 합계 ${sum(rows)}`;
+      document.getElementById(tid).innerHTML=buildTable(rows,cat);
+    }
+  };
+  show('secHd',hd,'handon','infoHd','tblHd');
+  show('secHw',hw,'hanwoo','infoHw','tblHw');
+  show('secEt',et,'etc','infoEt','tblEt');
+
+  sg.scrollIntoView({behavior:'smooth',block:'start'});
+  showToast(`✓ 오창 ${hd.length}건 · 용인 ${hw.length}건 정리 완료!`);
+}
+
+function clearAll(){
+  document.getElementById('inputArea').value='';
+  document.getElementById('sumGrid').style.display='none';
+  ['secHd','secHw','secEt'].forEach(id=>document.getElementById(id).style.display='none');
+  data={handon:[],hanwoo:[],etc:[]};
+}
+
+function copySection(cat){
+  const rows=data[cat];if(!rows.length)return;
+  const lb={handon:'🐷 한돈·오창공장',hanwoo:'🐄 한우·용인공장',etc:'📦 기타'};
+  const lines=rows.map(r=>`${r.상품코드}\t${r.상품명}\t${r.총수량}\t${r.입수단위}`);
+  navigator.clipboard.writeText([`[${lb[cat]}]`,'상품코드\t상품명\t총수량\t입수단위',...lines,`\t소계\t${sum(rows)}\t`].join('\n'))
+    .then(()=>showToast('📋 클립보드에 복사되었습니다!'));
+}
+
+function downloadCSV(cat){
+  const rows=data[cat];if(!rows.length)return;
+  const lb={handon:'한돈_오창',hanwoo:'한우_용인',etc:'기타'};
+  const body=rows.map(r=>`${r.상품코드},"${r.상품명}",${r.총수량},${r.입수단위}`).join('\n');
+  const blob=new Blob(['\uFEFF상품코드,상품명,총수량,입수단위\n'+body+`\n,,소계:${sum(rows)},`],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=`발주정리_${lb[cat]}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); showToast('⬇ CSV 저장 완료!');
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+document.getElementById('inputArea').addEventListener('paste',()=>setTimeout(parseData,100));
+
+function copyPrompt(){
+  const txt = '이 팜스토리 발주 목록 이미지에서 상품코드(13자리 숫자), 상품명, 수량만 탭으로 구분해서 출력해줘. 다른 설명 없이 데이터만.';
+  navigator.clipboard.writeText(txt).then(function(){ showToast('📋 문구 복사됨!'); });
+}
+
+function parseImageText(){
+  const raw = document.getElementById('imgTextArea').value.trim();
+  if(!raw){ showToast('텍스트를 붙여넣어 주세요!'); return; }
+  document.getElementById('inputArea').value = raw;
+  goOrderTab('paste', document.getElementById('subOrderPaste'));
+  parseData();
+  showToast('✓ 정리 완료!');
+}
+</script>
+
+<!-- SheetJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// 탭 전환
+function switchTab(id,el){
+  document.querySelectorAll('.ys-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('ysTab-upload').style.display=id==='upload'?'block':'none';
+  document.getElementById('ysTab-slaughter').style.display=id==='slaughter'?'block':'none';
+}
+
+// 도축장코드 관리
+let slaughterDB={};
+
+function saveSlaughterDB(){
+  try { localStorage.setItem('slaughterDB', JSON.stringify(slaughterDB)); } catch(e){}
+}
+function loadSlaughterDB(){
+  try {
+    const saved = localStorage.getItem('slaughterDB');
+    if(saved) slaughterDB = JSON.parse(saved);
+  } catch(e){}
+}
+
+function renderSlaughterTable(){
+  const tbody=document.getElementById('slaughterTbody');
+  const entries=Object.entries(slaughterDB);
+  document.getElementById('slaughterCount').textContent='('+entries.length+'개)';
+  if(!entries.length){
+    tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px;">도축장코드가 없습니다. 엑셀로 불러오거나 수기로 추가해주세요.</td></tr>';
+    return;
+  }
+  tbody.innerHTML=entries.map(([name,code],i)=>
+    '<tr><td class="rn">'+(i+1)+'</td><td class="nm">'+name+'</td><td style="font-family:monospace;font-weight:700;">'+code+'</td><td><button onclick="deleteSlaughter(this,\''+name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:15px;font-weight:bold;">✕</button></td></tr>'
+  ).join('');
+}
+
+function addSlaughterRow(){
+  const name=document.getElementById('newSlaughterName').value.trim();
+  const code=document.getElementById('newSlaughterCode').value.trim();
+  if(!name||!code){showToast('도축장명과 코드를 모두 입력해주세요');return;}
+  slaughterDB[name]=code;
+  saveSlaughterDB();
+  document.getElementById('newSlaughterName').value='';
+  document.getElementById('newSlaughterCode').value='';
+  renderSlaughterTable();
+  showToast('✓ '+name+' 추가됨');
+}
+
+function deleteSlaughter(btn,name){
+  delete slaughterDB[name];
+  saveSlaughterDB();
+  renderSlaughterTable();
+  showToast('삭제됨: '+name);
+}
+
+function clearAllSlaughter(){
+  if(!confirm('전체 도축장코드를 삭제할까요?'))return;
+  slaughterDB={};
+  saveSlaughterDB();
+  renderSlaughterTable();
+}
+
+function handleSlaughterDrop(e){e.preventDefault();const f=e.dataTransfer.files[0];if(f)processSlaughterFile(f);}
+function loadSlaughterFile(input){if(input.files[0])processSlaughterFile(input.files[0]);}
+
+function processSlaughterFile(file){
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const wb=XLSX.read(e.target.result,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    let added=0;
+    rows.forEach(function(r){
+      const name=String(r[0]||'').trim();
+      const code=String(r[1]||'').trim();
+      if(name&&code&&name!='도축장명'&&name!='도축장'){slaughterDB[name]=code;added++;}
+    });
+    document.getElementById('dropTextSlaughter').textContent='✓ '+file.name+' ('+added+'개)';
+    document.getElementById('dropSlaughter').classList.add('loaded');
+    saveSlaughterDB();
+    renderSlaughterTable();
+    showToast('✓ 도축장코드 '+added+'개 불러옴');
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function downloadSlaughterExcel(){
+  const rows=[['도축장명','코드']].concat(Object.entries(slaughterDB));
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb,ws,'도축장코드');
+  XLSX.writeFile(wb,'도축장코드_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  showToast('도축장코드 저장 완료!');
+}
+
+loadSlaughterDB();
+renderSlaughterTable();
+
+// 파일 업로드 (2개)
+const ysFiles={1:null,2:null};
+const ysData={1:null,2:null};
+
+function handleDrop(e,num){e.preventDefault();const f=e.dataTransfer.files[0];if(f)processFile(num,f);}
+function loadFile(num,input){if(input.files[0])processFile(num,input.files[0]);}
+
+function processFile(num,file){
+  ysFiles[num]=file;
+  document.getElementById('dropText'+num).textContent='✓ '+file.name;
+  document.getElementById('drop'+num).classList.add('loaded');
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const wb=XLSX.read(e.target.result,{type:'array'});
+    let json=[];
+    let sheetInfo='';
+    if(num===1){
+      // 로우데이터: 시트별로 구분 저장
+      const sheetMap={};
+      wb.SheetNames.forEach(function(sn){
+        const ws=wb.Sheets[sn];
+        const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+        sheetMap[sn]=rows;
+        json=json.concat(rows);
+      });
+      ysData['1sheets']=sheetMap; // 시트별 데이터 별도 저장
+      sheetInfo=' [시트: '+wb.SheetNames.join(', ')+' 합계 '+json.length+'행]';
+    } else {
+      // 매입단가: 마지막 시트
+      const sheetName=wb.SheetNames[wb.SheetNames.length-1];
+      const ws=wb.Sheets[sheetName];
+      json=XLSX.utils.sheet_to_json(ws,{defval:''});
+      sheetInfo=' [시트: '+sheetName+']';
+    }
+    ysData[num]=json;
+    showToast('✓ '+file.name+' 로드 완료 ('+json.length+'행)'+sheetInfo);
+    checkAllLoaded();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function checkAllLoaded(){
+  const allLoaded=ysData[1]&&ysData[2];
+  const btn=document.getElementById('btnMerge');
+  const status=document.getElementById('ysStatus');
+  if(allLoaded){
+    btn.disabled=false;btn.style.opacity='1';
+    status.textContent='✓ 파일 준비 완료! 합치기를 눌러주세요';
+    status.style.color='var(--brand)';
+    // 자동 매핑 - UI 숨김
+  } else {
+    const cnt=[1,2].filter(function(n){return ysData[n];}).length;
+    status.textContent=cnt+'/2 파일 업로드됨';
+    status.style.color='var(--text-muted)';
+  }
+}
+
+function fillSelect(id,cols){
+  const sel=document.getElementById(id);
+  sel.innerHTML=cols.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
+}
+function autoSelect(id,cols,keywords){
+  const sel=document.getElementById(id);
+  for(let i=0;i<keywords.length;i++){
+    const kw=keywords[i];
+    const found=cols.find(function(c){return c.toLowerCase().indexOf(kw.toLowerCase())>=0;});
+    if(found){sel.value=found;break;}
+  }
+}
+
+// 합치기
+const FINAL_COLS=['순번','상품코드','품목코드','품목명칭','수량','중량','금액1','금액2','제조일자','바코드','이력(묶음)번호','도축장명','도축장코드','농가명','인증번호','구분1','구분2','구분3'];
+let mergedResult=[];
+
+function formatNumber(v){
+  if(v===''||v===null||v===undefined) return '';
+  const n = Number(String(v).replace(/,/g,''));
+  if(isNaN(n)) return v;
+  return n.toLocaleString('ko-KR');
+}
+
+function excelDateToStr(v){
+  if(!v && v!==0) return '';
+  // 이미 문자열 날짜면 그대로
+  const s = String(v).trim();
+  if(s.match(/^\d{4}-\d{2}-\d{2}/)) return s.slice(0,10);
+  // 엑셀 시리얼 숫자면 변환 (1900-01-01 = 1)
+  const n = Number(s);
+  if(!isNaN(n) && n > 10000 && n < 100000){
+    const d = new Date(Math.round((n - 25569) * 86400 * 1000));
+    const yy = d.getUTCFullYear();
+    const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+    const dd = String(d.getUTCDate()).padStart(2,'0');
+    return yy+'-'+mm+'-'+dd;
+  }
+  return s;
+}
+
+let mergedBySheet = {};
+
+function buildMergedFromRaw(raw){
+  return buildMergedCore(raw, ysData[2]);
+}
+
+function buildMerged(){
+  return buildMergedCore(ysData[1], ysData[2]);
+}
+
+function buildMergedCore(raw, priceMap){
+  if(!raw||!raw.length) return [];
+  const rawCols=Object.keys(raw[0]);
+  const rawItemCodeCol  = rawCols.find(function(c){return c==='품목코드';})||rawCols[1];
+  const rawItemNameCol  = rawCols.find(function(c){return c==='품목명칭';})||rawCols[2];
+  const rawQtyCol       = rawCols.find(function(c){return c==='수량'||c==='수';})||rawCols[3];
+  const rawWeightCol    = rawCols.find(function(c){return c==='중량'||c==='중';})||rawCols[4];
+  const rawMfgCol       = rawCols.find(function(c){return c.indexOf('제조')>=0;})||rawCols[5];
+  const rawBarcodeCol   = rawCols.find(function(c){return c==='바코드';})||rawCols[6];
+  const rawHistCol      = rawCols.find(function(c){return c.indexOf('이력')>=0||c.indexOf('묶음')>=0;})||rawCols[7];
+  const rawSlaughterCol = rawCols.find(function(c){return c.indexOf('도축장명')>=0;})||rawCols[8];
+  const rawFarmerCol    = rawCols.find(function(c){return c.indexOf('농가')>=0;})||rawCols[9];
+  const rawCertCol      = rawCols.find(function(c){return c.indexOf('인증')>=0;})||rawCols[10];
+  const rawDiv1Col      = rawCols.find(function(c){return c==='구분1';})||rawCols[11];
+  const rawDiv2Col      = rawCols.find(function(c){return c==='구분2';})||rawCols[12];
+  const rawDiv3Col      = rawCols.find(function(c){return c==='구분3';})||rawCols[13];
+
+  const priceDict={};
+  priceMap.forEach(function(r){
+    const keys=Object.keys(r);
+    function cleanKey(k){ return k.split('\n').join('').split('\r').join(''); }
+    const bcKey   = keys.find(function(k){return cleanKey(k).indexOf('바코드')>=0;})||keys[0];
+    const codeKey = keys.find(function(k){return cleanKey(k).indexOf('품목코드')>=0;})||keys[1];
+    const nameKey = keys.find(function(k){var kk=cleanKey(k); return kk==='품목'||kk.indexOf('품목명')>=0;})||keys[2];
+    const priceKey= keys.find(function(k){return cleanKey(k).indexOf('단가')>=0;})||keys[3];
+    var bc = String(r[bcKey]||'').trim();
+    if(bc.indexOf('.')>=0) bc = bc.split('.')[0];
+    if(bc && bc!='상품바코드' && bc.length>5){
+      priceDict[bc]={
+        품목코드: String(r[codeKey]||'').replace(/\.0$/,'').trim(),
+        품목명칭: String(r[nameKey]||'').trim(),
+        단가:     r[priceKey]||''
+      };
+    }
+  });
+
+  return raw.map(function(row){
+    var itemCode = String(row[rawItemCodeCol]||'').trim();
+    if(itemCode.indexOf('.')>=0) itemCode = itemCode.split('.')[0];
+    const slaughter = String(row[rawSlaughterCol]||'').trim();
+    const matched   = priceDict[itemCode]||{품목코드:'',품목명칭:'',단가:''};
+    const slauCode  = slaughterDB[slaughter]||'';
+    return {
+      '순번':           row[rawCols[0]]||'',
+      '상품코드':       itemCode,
+      '품목코드':       matched.품목코드,
+      '품목명칭':       matched.품목명칭,
+      '수량':           row[rawQtyCol]||'',
+      '중량':           row[rawWeightCol]||'',
+      '금액1':          formatNumber(matched.단가),
+      '금액2':          formatNumber(matched.단가),
+      '제조일자':       excelDateToStr(row[rawMfgCol]),
+      '바코드':         String(row[rawBarcodeCol]||'').trim(),
+      '이력(묶음)번호': row[rawHistCol]||'',
+      '도축장명':       slaughter,
+      '도축장코드':     slauCode,
+      '농가명':         row[rawFarmerCol]||'',
+      '인증번호':       row[rawCertCol]||'',
+      '구분1':          row[rawDiv1Col]||'',
+      '구분2':          row[rawDiv2Col]||'',
+      '구분3':          row[rawDiv3Col]||''
+    };
+  });
+}
+
+function mergePreview(){
+  if(!Object.keys(slaughterDB).length){
+    if(!confirm('도축장코드가 없습니다. 그래도 계속할까요?\n(도축장코드 열이 비어있게 됩니다)'))return;
+  }
+
+  // 시트별로 각각 병합
+  const sheetMap = ysData['1sheets'];
+  if(sheetMap && Object.keys(sheetMap).length > 1){
+    // 여러 시트 → 각각 처리
+    mergedBySheet = {};
+    mergedResult = [];
+    Object.keys(sheetMap).forEach(function(sn){
+      const sheetRows = buildMergedFromRaw(sheetMap[sn]);
+      mergedBySheet[sn] = sheetRows;
+      mergedResult = mergedResult.concat(sheetRows);
+    });
+    showPreviewBySheet(mergedBySheet);
+  } else {
+    mergedResult = buildMerged();
+    showPreview(mergedResult);
+  }
+
+  document.getElementById('totalCount').textContent=mergedResult.length;
+  document.getElementById('previewCount').textContent='(전체 '+mergedResult.length+'행)';
+  document.getElementById('btnDownload').disabled=false;
+  document.getElementById('btnDownload').style.opacity='1';
+
+  // 합계 요약 생성
+  showSummary(mergedResult);
+
+  showToast('✓ 미리보기 완료! 확인 후 다운로드하세요');
+}
+
+function showSummary(rows){
+  if(!rows||!rows.length) return;
+
+  // 품목코드별 집계
+  const summaryMap = {};
+  rows.forEach(function(r){
+    const key = r['품목코드']||'(미매칭)';
+    const name = r['품목명칭']||'';
+    if(!summaryMap[key]){
+      summaryMap[key] = { 품목코드:key, 품목명칭:name, 수량:0, 중량:0, 금액1:0, 금액2:0, 건수:0 };
+    }
+    const qty = parseFloat(String(r['수량']||'0').replace(/,/g,''))||0;
+    const wt  = parseFloat(String(r['중량']||'0').replace(/,/g,''))||0;
+    const a1  = parseFloat(String(r['금액1']||'0').replace(/,/g,''))||0;
+    const a2  = parseFloat(String(r['금액2']||'0').replace(/,/g,''))||0;
+    summaryMap[key].수량  += qty;
+    summaryMap[key].중량  += wt;
+    summaryMap[key].금액1 += a1;
+    summaryMap[key].금액2 += a2;
+    summaryMap[key].건수  += 1;
+  });
+
+  const summaryRows = Object.values(summaryMap).sort(function(a,b){
+    return String(a.품목코드).localeCompare(String(b.품목코드));
+  });
+
+  // 전체 합계
+  const totalQty  = summaryRows.reduce(function(s,r){return s+r.수량;},0);
+  const totalWt   = summaryRows.reduce(function(s,r){return s+r.중량;},0);
+  const totalA1   = summaryRows.reduce(function(s,r){return s+r.금액1;},0);
+  const totalA2   = summaryRows.reduce(function(s,r){return s+r.금액2;},0);
+  const totalRows = rows.length;
+
+  function fmt(n){ return isNaN(n)?'-':Number(n.toFixed(2)).toLocaleString('ko-KR'); }
+
+  let html = '<table class="xl et" style="font-size:12px;width:100%;table-layout:fixed;">';
+  html += '<colgroup><col style="width:80px"><col style="width:auto"><col style="width:60px"><col style="width:70px"><col style="width:85px"><col style="width:85px"><col style="width:50px"></colgroup>';
+  html += '<thead><tr style="background:var(--brand);">' +
+    '<th style="color:white;padding:8px 10px;text-align:center;">품목코드</th>' +
+    '<th style="color:white;padding:8px 10px;text-align:left;">품목명칭</th>' +
+    '<th style="color:white;padding:8px 10px;text-align:right;">수량</th>' +
+    '<th style="color:white;padding:8px 10px;text-align:right;">중량</th>' +
+    '<th style="color:white;padding:8px 10px;text-align:right;">★ 금액1</th>' +
+    '<th style="color:white;padding:8px 10px;text-align:right;">★ 금액2</th>' +
+    '<th style="color:white;padding:8px 10px;text-align:right;">건수</th>' +
+    '</tr></thead><tbody>';
+
+  summaryRows.forEach(function(r, i){
+    const bg = i%2===0 ? '#f9fafb' : 'white';
+    html += '<tr style="background:'+bg+';">' +
+      '<td style="padding:7px 10px;text-align:center;font-family:monospace;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+r.품목코드+'</td>' +
+      '<td style="padding:7px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;">'+r.품목명칭+'</td>' +
+      '<td style="padding:7px 10px;text-align:right;">'+fmt(r.수량)+'</td>' +
+      '<td style="padding:7px 10px;text-align:right;">'+fmt(r.중량)+'</td>' +
+      '<td style="padding:7px 10px;text-align:right;font-weight:600;color:var(--brand);">'+fmt(r.금액1)+'</td>' +
+      '<td style="padding:7px 10px;text-align:right;font-weight:600;color:var(--brand);">'+fmt(r.금액2)+'</td>' +
+      '<td style="padding:7px 10px;text-align:right;color:var(--text-muted);">'+r.건수+'</td>' +
+    '</tr>';
+  });
+
+  // 합계 행
+  html += '<tr style="background:#e8f5ee;font-weight:800;border-top:2px solid var(--brand);">' +
+    '<td style="padding:9px 10px;text-align:center;color:var(--brand);">합 계</td>' +
+    '<td style="padding:9px 10px;color:var(--text-muted);font-size:11px;">'+summaryRows.length+'개 품목 · 전체 '+totalRows+'행</td>' +
+    '<td style="padding:9px 10px;text-align:right;color:var(--brand);">'+fmt(totalQty)+'</td>' +
+    '<td style="padding:9px 10px;text-align:right;color:var(--brand);">'+fmt(totalWt)+'</td>' +
+    '<td style="padding:9px 10px;text-align:right;color:var(--brand);">'+fmt(totalA1)+'</td>' +
+    '<td style="padding:9px 10px;text-align:right;color:var(--brand);">'+fmt(totalA2)+'</td>' +
+    '<td style="padding:9px 10px;text-align:right;color:var(--brand);">'+totalRows+'</td>' +
+  '</tr>';
+
+  html += '</tbody></table>';
+
+  document.getElementById('ysSummaryTable').innerHTML = html;
+  document.getElementById('ysSummary').style.display = 'block';
+
+  // 합계 탭에도 동일하게 업데이트
+  document.getElementById('ysSummaryTable2').innerHTML = html;
+  document.getElementById('ysSummaryEmpty').style.display = 'none';
+}
+
+function downloadExcel(){
+  if(!mergedResult.length){showToast('먼저 합치기를 눌러주세요');return;}
+  const wb2=XLSX.utils.book_new();
+  const today=new Date().toISOString().slice(0,10);
+  if(mergedBySheet && Object.keys(mergedBySheet).length > 1){
+    // 시트별 분리 저장
+    Object.keys(mergedBySheet).forEach(function(sn){
+      const ws2=XLSX.utils.json_to_sheet(mergedBySheet[sn]);
+      XLSX.utils.book_append_sheet(wb2, ws2, sn);
+    });
+  } else {
+    const ws2=XLSX.utils.json_to_sheet(mergedResult);
+    XLSX.utils.book_append_sheet(wb2,ws2,'완성데이터');
+  }
+  XLSX.writeFile(wb2,'윤성매입_완성_'+today+'.xlsx');
+  showToast('✓ 윤성매입_완성_'+today+'.xlsx 다운로드 완료!');
+}
+
+// ── 페이지네이션 미리보기 ──
+const PAGE_SIZE = 20;
+let previewData = {}; // { sheetName: rows[] }
+let previewPages = {}; // { sheetName: currentPage }
+let activeSheet = '';
+
+function renderSheetTabs(){
+  const sheets = Object.keys(previewData);
+  const tabHtml = sheets.map(function(sn){
+    const isActive = sn === activeSheet;
+    return '<button onclick="switchPreviewSheet(\''+sn+'\')" style="'+
+      'padding:8px 18px;border:none;border-radius:8px 8px 0 0;cursor:pointer;font-family:inherit;font-size:13px;font-weight:'+(isActive?'800':'500')+';'+
+      'background:'+(isActive?'var(--brand)':'#e5e7eb')+';color:'+(isActive?'white':'var(--text-sub)')+';margin-right:4px;transition:0.15s;">'+
+      sn+' <span style="font-size:11px;opacity:0.8">('+previewData[sn].length+'행)</span>'+
+    '</button>';
+  }).join('');
+  document.getElementById('sheetTabs').innerHTML = tabHtml;
+}
+
+function switchPreviewSheet(sn){
+  activeSheet = sn;
+  renderSheetTabs();
+  renderPagedTable(sn);
+}
+
+function renderPagedTable(sn){
+  const rows = previewData[sn];
+  const page = previewPages[sn] || 0;
+  const total = rows.length;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const start = page * PAGE_SIZE;
+  const pageRows = rows.slice(start, start + PAGE_SIZE);
+  const cols = rows.length ? Object.keys(rows[0]) : [];
+  const highlighted = ['도축장코드','금액1','금액2','품목코드','품목명칭'];
+
+  const tableWidth = document.getElementById('pagedTable').offsetWidth || 800;
+  let html = '<div style="width:'+tableWidth+'px;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">';
+  // 컬럼별 고정 너비
+  const colWidths = {
+    '순번': '44px', '상품코드': '120px', '품목코드': '70px',
+    '품목명칭': '130px', '수량': '44px', '중량': '50px',
+    '금액1': '75px', '금액2': '75px', '제조일자': '88px',
+    '바코드': '120px', '이력(묶음)번호': '130px', '도축장명': '120px',
+    '도축장코드': '80px', '농가명': '90px', '인증번호': '80px',
+    '구분1': '55px', '구분2': '44px', '구분3': '44px'
+  };
+  html += '<table class="xl et" style="font-size:11px;table-layout:fixed;width:100%;min-width:100%;">';
+  html += '<colgroup>'+cols.map(function(c){
+    return '<col style="width:'+(colWidths[c]||'90px')+';">';
+  }).join('')+'</colgroup>';
+  html += '<thead><tr>' + cols.map(function(c){
+    const isNew = highlighted.indexOf(c)>=0;
+    return '<th style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+(isNew?'background:var(--brand);':'background:#4b5563;')+'">'+(isNew?'★ ':'')+c+'</th>';
+  }).join('') + '</tr></thead><tbody>';
+  pageRows.forEach(function(r){
+    html += '<tr>' + cols.map(function(c){
+      const isNew = highlighted.indexOf(c)>=0;
+      const val = r[c]!==undefined ? r[c] : '';
+      return '<td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+(isNew?'font-weight:700;color:var(--brand);background:#f0faf4;':'')+'">'+val+'</td>';
+    }).join('') + '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // 페이지네이션 - 테이블과 분리해서 고정 위치에 렌더
+  document.getElementById('paginationBar').innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:12px 16px;border-top:2px solid var(--border);background:white;position:sticky;bottom:0;left:0;right:0;z-index:10;box-shadow:0 -2px 8px rgba(0,0,0,0.06);">'+
+    '<button onclick="changePage(\''+sn+'\', -1)" '+(page===0?'disabled':'')+
+      ' style="padding:6px 16px;border:1.5px solid var(--border);border-radius:8px;background:white;cursor:pointer;font-size:16px;font-weight:700;'+(page===0?'opacity:0.35;':'')+'">‹</button>'+
+    '<span style="font-size:12px;color:var(--text-muted);">'+(page+1)+' / '+totalPages+' 페이지 &nbsp;·&nbsp; 전체 '+total+'행</span>'+
+    '<input type="number" min="1" max="'+totalPages+'" value="'+(page+1)+'" '+
+      'onchange="jumpPage(\''+sn+'\', this.value, '+totalPages+')" '+
+      'style="width:56px;padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;text-align:center;outline:none;" '+
+      'title="페이지 직접 입력">'+
+    '<span style="font-size:11px;color:var(--text-muted);">페이지 이동</span>'+
+    '<button onclick="changePage(\''+sn+'\', 1)" '+(page>=totalPages-1?'disabled':'')+
+      ' style="padding:6px 16px;border:1.5px solid var(--border);border-radius:8px;background:white;cursor:pointer;font-size:16px;font-weight:700;'+(page>=totalPages-1?'opacity:0.35;':'')+'">›</button>'+
+    '</div>';
+
+  document.getElementById('pagedTable').innerHTML = html;
+  // 스크롤을 테이블 상단으로
+}
+
+function jumpPage(sn, val, totalPages){
+  const p = parseInt(val) - 1;
+  if(isNaN(p)) return;
+  previewPages[sn] = Math.max(0, Math.min(p, totalPages-1));
+  renderPagedTable(sn);
+}
+
+function changePage(sn, dir){
+  const rows = previewData[sn];
+  const totalPages = Math.ceil(rows.length / PAGE_SIZE);
+  previewPages[sn] = Math.max(0, Math.min((previewPages[sn]||0) + dir, totalPages-1));
+  renderPagedTable(sn);
+}
+
+function showPreview(rows){
+  if(!rows||!rows.length)return;
+  previewData = {'전체': rows};
+  previewPages = {'전체': 0};
+  activeSheet = '전체';
+  document.getElementById('sheetTabs').innerHTML = '';
+  renderPagedTable('전체');
+  document.getElementById('ysPreview').style.display='block';
+  document.getElementById('ysPreview').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function showPreviewBySheet(sheetMap){
+  previewData = sheetMap;
+  previewPages = {};
+  Object.keys(sheetMap).forEach(function(sn){ previewPages[sn] = 0; });
+  activeSheet = Object.keys(sheetMap)[0];
+  renderSheetTabs();
+  renderPagedTable(activeSheet);
+  document.getElementById('ysPreview').style.display='block';
+  document.getElementById('ysPreview').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function makeTableHtml(rows){ return ''; } // 호환용 더미
+
+function downloadSummaryExcel(){
+  const table = document.getElementById('ysSummaryTable').querySelector('table');
+  if(!table) return;
+  const rows = [];
+  table.querySelectorAll('tr').forEach(function(tr){
+    const row = [];
+    tr.querySelectorAll('th,td').forEach(function(td){ row.push(td.innerText.trim()); });
+    rows.push(row);
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, '품목별합계');
+  XLSX.writeFile(wb, '품목별합계_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  showToast('⬇ 합계 엑셀 저장 완료!');
+}
+
+function resetYunsong(){
+  [1,2].forEach(function(n){
+    ysFiles[n]=null;ysData[n]=null;
+    document.getElementById('dropText'+n).textContent='클릭 또는 드래그';
+    document.getElementById('drop'+n).classList.remove('loaded');
+    document.getElementById('file'+n).value='';
+  });
+  document.getElementById('btnMerge').disabled=true;
+  document.getElementById('btnMerge').style.opacity='0.4';
+  document.getElementById('btnDownload').disabled=true;
+  document.getElementById('btnDownload').style.opacity='0.4';
+  document.getElementById('ysStatus').textContent='파일 2개를 모두 업로드해주세요';
+  document.getElementById('ysStatus').style.color='var(--text-muted)';
+  document.getElementById('ysMapping').style.display='none';
+  document.getElementById('ysPreview').style.display='none';
+  document.getElementById('ysSummary').style.display='none';
+  document.getElementById('ysSummaryTable').innerHTML='';
+  mergedResult=[];
+}
+
+
+// ── 이미지 OCR (Claude AI) ──
+// ── 이미지 OCR (Claude AI) ──
+let currentImageBase64 = '';
+let currentImageType = '';
+
+function handleImageDrop(e){
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if(f && f.type.startsWith('image/')) loadImageFile(f);
+}
+
+function handleImageFile(input){
+  if(input.files[0]) loadImageFile(input.files[0]);
+}
+
+function loadImageFile(file){
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const dataUrl = e.target.result;
+    currentImageBase64 = dataUrl.split(',')[1];
+    currentImageType = file.type || 'image/png';
+
+    // 미리보기
+    document.getElementById('imgPreview').src = dataUrl;
+    document.getElementById('imgPreviewWrap').style.display = 'block';
+    document.getElementById('imgDropText').textContent = '✓ ' + file.name;
+    document.getElementById('imgDropIcon').textContent = '✅';
+    document.getElementById('dropImage').classList.add('loaded');
+
+    // 추출 버튼 활성화
+    document.getElementById('btnExtract').disabled = false;
+    document.getElementById('btnExtract').style.opacity = '1';
+  };
+  reader.readAsDataURL(file);
+}
+
+
+
+
+</script>
+
+
+
+</body>
+</html>
+<script>
+// ── 미트박스 출고자료 ──
+let meatboxRawData = [];
+let meatboxResult  = [];
+
+function handleMeatboxDrop(e){ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) loadMeatboxFileData(f); }
+function loadMeatboxFile(input){ if(input.files[0]) loadMeatboxFileData(input.files[0]); }
+
+function loadMeatboxFileData(file){
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const wb = XLSX.read(e.target.result, {type:'array'});
+    // 마지막 시트 읽기
+    const sheetName = wb.SheetNames[wb.SheetNames.length-1];
+    const ws = wb.Sheets[sheetName];
+    const json = XLSX.utils.sheet_to_json(ws, {defval:''});
+    meatboxRawData = json;
+    document.getElementById('dropTextMeatbox').textContent = '✓ '+file.name+' ('+json.length+'행) [시트: '+sheetName+']';
+    document.getElementById('dropMeatbox').classList.add('loaded');
+    document.getElementById('btnMeatbox').disabled = false;
+    document.getElementById('btnMeatbox').style.opacity = '1';
+    showToast('✓ '+file.name+' 로드 완료 ('+json.length+'행)');
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function processMeatbox(){
+  if(!meatboxRawData.length){ showToast('파일을 먼저 업로드해주세요'); return; }
+
+  const raw = meatboxRawData;
+  const cols = Object.keys(raw[0]);
+
+  // 실제 컬럼명 기준 매핑
+  // igo_no=전표번호, item_id=품목코드, item_hname=품목명, wgt=중량
+  // cognition_barcode=개체이력, box_no=박스번호, pig_barcode=바코드
+  // scan_flg, meat_no 제외
+  const col전표    = cols.find(c=>c==='igo_no')||cols.find(c=>c.includes('전표'))||cols[0];
+  const col품목코드 = cols.find(c=>c==='item_id')||cols.find(c=>c.includes('item_id'))||cols[1];
+  const col품목명  = cols.find(c=>c==='item_hname')||cols.find(c=>c.includes('hname'))||cols[2];
+  const col중량    = cols.find(c=>c==='wgt')||cols.find(c=>c.includes('wgt'))||cols[4];
+  const col개체    = cols.find(c=>c==='cognition_barcode')||cols.find(c=>c.includes('cognition'))||cols[7];
+  const col박스    = cols.find(c=>c==='box_no')||cols.find(c=>c.includes('box'))||cols[3];
+  const col바코드  = cols.find(c=>c==='pig_barcode')||cols.find(c=>c.includes('pig_barcode'))||cols[8];
+
+  // 품목코드별 그룹화 (순서 유지)
+  const groups = [];
+  const groupMap = {};
+  raw.forEach(function(row){
+    const code = String(row[col품목코드]||'').trim();
+    if(!code) return;
+    if(!groupMap[code]){
+      groupMap[code] = [];
+      groups.push(code);
+    }
+    groupMap[code].push(row);
+  });
+
+  // 결과 생성: 각 그룹 + 합계행 + 총합계
+  meatboxResult = [];
+  let totalWeight = 0;
+
+  groups.forEach(function(code){
+    const rows = groupMap[code];
+    let groupWeight = 0;
+
+    rows.forEach(function(row){
+      const wt = parseFloat(String(row[col중량]||'0').replace(/,/g,''))||0;
+      groupWeight += wt;
+      totalWeight += wt;
+      meatboxResult.push({
+        '전표번호':   row[col전표]||'',
+        '품목코드':   code,
+        '품목명':     row[col품목명]||'',
+        '중량(kg)':   wt||'',
+        '개체이력':   row[col개체]||'',
+        '박스번호':   row[col박스]||'',
+        '바코드':     row[col바코드]||'',
+        '_type':      'data'
+      });
+    });
+
+    // 품목 합계행
+    meatboxResult.push({
+      '전표번호': '',
+      '품목코드': '',
+      '품목명':   '합계',
+      '중량(kg)': Math.round(groupWeight*10)/10,
+      '개체이력': '',
+      '박스번호': '',
+      '바코드':   '',
+      '_type':    'subtotal'
+    });
+  });
+
+  // 총 합계행
+  meatboxResult.push({
+    '전표번호': '',
+    '품목코드': '',
+    '품목명':   '총 중량 합계',
+    '중량(kg)': Math.round(totalWeight*10)/10,
+    '개체이력': '',
+    '박스번호': '',
+    '바코드':   '',
+    '_type':    'total'
+  });
+
+  renderMeatboxTable();
+}
+
+function renderMeatboxTable(){
+  const displayCols = ['전표번호','품목코드','품목명','중량(kg)','개체이력','박스번호','바코드'];
+  let html = '<table class="xl et" style="font-size:12px;width:100%;table-layout:fixed;">';
+  html += '<colgroup><col style="width:110px"><col style="width:75px"><col style="width:90px"><col style="width:75px"><col style="width:120px"><col style="width:100px"><col style="width:auto"></colgroup>';
+  html += '<thead><tr style="background:var(--brand);">' +
+    displayCols.map(c=>'<th style="color:white;padding:8px 10px;text-align:'+(c==='중량(kg)'?'right':'center')+';">'+c+'</th>').join('') +
+  '</tr></thead><tbody>';
+
+  meatboxResult.forEach(function(row){
+    if(row._type==='subtotal'){
+      html += '<tr style="background:#fde68a;font-weight:800;">' +
+        '<td style="padding:7px 10px;" colspan="2"></td>' +
+        '<td style="padding:7px 10px;text-align:center;color:#b45309;">합 계</td>' +
+        '<td style="padding:7px 10px;text-align:right;color:#b45309;">'+row['중량(kg)']+'</td>' +
+        '<td colspan="3"></td>' +
+      '</tr>';
+    } else if(row._type==='total'){
+      html += '<tr style="background:#1e6b3c;font-weight:900;">' +
+        '<td style="padding:9px 10px;" colspan="2"></td>' +
+        '<td style="padding:9px 10px;text-align:center;color:white;">총 중량 합계</td>' +
+        '<td style="padding:9px 10px;text-align:right;color:white;font-size:14px;">'+row['중량(kg)']+'</td>' +
+        '<td colspan="3"></td>' +
+      '</tr>';
+    } else {
+      html += '<tr style="background:white;border-bottom:1px solid #eaefea;">' +
+        displayCols.map(function(c){
+          return '<td style="padding:7px 10px;text-align:'+(c==='중량(kg)'?'right':'center')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+row[c]+'</td>';
+        }).join('') +
+      '</tr>';
+    }
+  });
+
+  html += '</tbody></table>';
+
+  const dataCount = meatboxResult.filter(r=>r._type==='data').length;
+  const totalRow  = meatboxResult.find(r=>r._type==='total');
+  document.getElementById('meatboxInfo').textContent =
+    '('+dataCount+'행 · 총 중량 '+(totalRow?totalRow['중량(kg)']:'')+'kg)';
+  document.getElementById('meatboxTable').innerHTML = html;
+  document.getElementById('meatboxPreview').style.display = 'block';
+  document.getElementById('meatboxPreview').scrollIntoView({behavior:'smooth',block:'start'});
+  showToast('✓ 출고자료 생성 완료!');
+}
+
+function downloadMeatboxExcel(){
+  if(!meatboxResult.length){ showToast('먼저 출고자료를 생성해주세요'); return; }
+
+  const displayCols = ['전표번호','품목코드','품목명','중량(kg)','개체이력','박스번호','바코드'];
+  const rows = [displayCols]; // 헤더
+
+  meatboxResult.forEach(function(row){
+    if(row._type==='data'){
+      rows.push(displayCols.map(c=>row[c]));
+    } else if(row._type==='subtotal'){
+      rows.push(['','','합계',row['중량(kg)'],'','','']);
+    } else if(row._type==='total'){
+      rows.push(['','','총 중량 합계',row['중량(kg)'],'','','']);
+    }
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  // 합계행 스타일 (배경색)
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  ws['!cols'] = [
+    {wch:16},{wch:10},{wch:14},{wch:10},{wch:18},{wch:14},{wch:28}
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, '출고자료');
+  const today = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, '미트박스_출고자료_'+today+'.xlsx');
+  showToast('⬇ 엑셀 다운로드 완료!');
+}
+
+function resetMeatbox(){
+  meatboxRawData = []; meatboxResult = [];
+  document.getElementById('dropTextMeatbox').textContent = '클릭 또는 드래그';
+  document.getElementById('dropMeatbox').classList.remove('loaded');
+  document.getElementById('fileMeatbox').value = '';
+  document.getElementById('btnMeatbox').disabled = true;
+  document.getElementById('btnMeatbox').style.opacity = '0.4';
+  document.getElementById('meatboxPreview').style.display = 'none';
+}
+</script>
+
+<!-- html2canvas + jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+async function downloadMeatboxImage(){
+  if(!meatboxResult.length){ showToast('먼저 출고자료를 생성해주세요'); return; }
+
+  showToast('🖼 이미지 생성 중...');
+
+  // 인쇄용 테이블 생성 (A4 가독성 최적화)
+  const printDiv = document.createElement('div');
+  printDiv.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:794px;background:white;padding:32px;font-family:Noto Sans KR,sans-serif;';
+
+  // 헤더
+  const today = new Date();
+  const dateStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  printDiv.innerHTML = `
+    <div style="border-bottom:3px solid #1e6b3c;padding-bottom:10px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-end;">
+      <div>
+        <div style="font-size:20px;font-weight:900;color:#1e6b3c;">🥩 미트박스 출고자료</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:3px;">품목코드별 중량 집계</div>
+      </div>
+      <div style="font-size:11px;color:#6b7280;text-align:right;">출력일: <strong style="color:#111;">${dateStr}</strong></div>
+    </div>
+    <table id="printMeatTable" style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead>
+        <tr style="background:#1e6b3c;">
+          <th style="color:white;padding:8px 10px;text-align:center;border:1px solid #145229;">전표번호</th>
+          <th style="color:white;padding:8px 10px;text-align:center;border:1px solid #145229;">품목코드</th>
+          <th style="color:white;padding:8px 10px;text-align:center;border:1px solid #145229;">품목명</th>
+          <th style="color:white;padding:8px 10px;text-align:right;border:1px solid #145229;">중량(kg)</th>
+          <th style="color:white;padding:8px 10px;text-align:center;border:1px solid #145229;">개체이력</th>
+          <th style="color:white;padding:8px 10px;text-align:center;border:1px solid #145229;">박스번호</th>
+          <th style="color:white;padding:8px 10px;text-align:center;border:1px solid #145229;">바코드</th>
+        </tr>
+      </thead>
+      <tbody id="printMeatBody"></tbody>
+    </table>
+  `;
+  document.body.appendChild(printDiv);
+
+  const tbody = printDiv.querySelector('#printMeatBody');
+  meatboxResult.forEach(function(row, i){
+    const tr = document.createElement('tr');
+    if(row._type==='subtotal'){
+      tr.style.cssText='background:#fef9c3;font-weight:800;';
+      tr.innerHTML=`
+        <td colspan="2" style="padding:7px 10px;border:1px solid #e5e7eb;"></td>
+        <td style="padding:7px 10px;text-align:center;border:1px solid #e5e7eb;color:#b45309;">합 계</td>
+        <td style="padding:7px 10px;text-align:right;border:1px solid #e5e7eb;color:#b45309;">${row['중량(kg)']}</td>
+        <td colspan="3" style="padding:7px 10px;border:1px solid #e5e7eb;"></td>`;
+    } else if(row._type==='total'){
+      tr.style.cssText='background:#1e6b3c;font-weight:900;';
+      tr.innerHTML=`
+        <td colspan="2" style="padding:9px 10px;border:1px solid #145229;"></td>
+        <td style="padding:9px 10px;text-align:center;border:1px solid #145229;color:white;">총 중량 합계</td>
+        <td style="padding:9px 10px;text-align:right;border:1px solid #145229;color:white;font-size:14px;">${row['중량(kg)']}</td>
+        <td colspan="3" style="padding:9px 10px;border:1px solid #145229;"></td>`;
+    } else {
+      tr.style.cssText = 'background:'+(i%2===0?'#f9fafb':'white')+';';
+      tr.innerHTML = [
+        row['전표번호'], row['품목코드'], row['품목명'],
+        row['중량(kg)'], row['개체이력'], row['박스번호'], row['바코드']
+      ].map((v,ci)=>`<td style="padding:6px 10px;border:1px solid #e5e7eb;text-align:${ci===3?'right':'center'};white-space:nowrap;">${v}</td>`).join('');
+    }
+    tbody.appendChild(tr);
+  });
+
+  try {
+    // A4 기준으로 페이지 분할 PDF 생성
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation:'landscape', unit:'px', format:'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+
+    const canvas = await html2canvas(printDiv, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff'
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    const imgW = pageW - 40;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    const totalPages = Math.ceil(imgH / (pageH - 40));
+
+    for(let page=0; page<totalPages; page++){
+      if(page > 0) pdf.addPage();
+      const srcY = page * (pageH - 40) * (canvas.width / imgW);
+      const sliceH = Math.min((pageH - 40) * (canvas.width / imgW), canvas.height - srcY);
+
+      // 각 페이지 슬라이스 캔버스
+      const sliceCanvas = document.createElement('canvas');
+      sliceCanvas.width = canvas.width;
+      sliceCanvas.height = sliceH;
+      const ctx = sliceCanvas.getContext('2d');
+      ctx.drawImage(canvas, 0, -srcY);
+      const sliceData = sliceCanvas.toDataURL('image/png');
+      const sliceImgH = sliceH * imgW / canvas.width;
+
+      pdf.addImage(sliceData, 'PNG', 20, 20, imgW, sliceImgH);
+
+      // 페이지 번호
+      pdf.setFontSize(9);
+      pdf.setTextColor(150);
+      pdf.text(`${page+1} / ${totalPages}`, pageW/2, pageH-8, {align:'center'});
+    }
+
+    pdf.save('미트박스_출고자료_'+dateStr+'.pdf');
+    showToast('✓ PDF 저장 완료! ('+totalPages+'페이지)');
+  } catch(err){
+    // PDF 실패시 이미지로 fallback
+    const link = document.createElement('a');
+    const canvas = await html2canvas(printDiv, {scale:2, backgroundColor:'#ffffff'});
+    link.download = '미트박스_출고자료_'+dateStr+'.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('✓ 이미지 저장 완료!');
+  } finally {
+    document.body.removeChild(printDiv);
+  }
+}
+</script>
